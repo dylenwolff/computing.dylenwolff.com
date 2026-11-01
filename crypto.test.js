@@ -1,19 +1,5 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {makeKeys,seal,open,unb64,b64} from './crypto.js';
-for(const mode of ['symmetric','asymmetric']){
- test(`${mode}: round trip, randomness, wrong key and tamper rejection`,async()=>{
- const keys=await makeKeys(mode),wrong=await makeKeys(mode),message='Hello students! 🔐 ආයුබෝවන්';
- const packet=await seal(mode,keys,message);
- assert.equal(await open(mode,keys,packet),message);
- assert.notEqual(await seal(mode,keys,message),packet);
- await assert.rejects(open(mode,wrong,packet));
- const altered=JSON.parse(packet),data=unb64(altered.data);data[0]^=1;altered.data=b64(data);
- await assert.rejects(open(mode,keys,JSON.stringify(altered)));
- await assert.rejects(open(mode,keys,'invalid'));
- await assert.rejects(open(mode,keys,JSON.stringify({...JSON.parse(packet),mode:'other'})));
- await assert.rejects(seal(mode,keys,''));
- });
-}
-test('RSA enforces UTF-8 byte limit',async()=>{const k=await makeKeys('asymmetric');assert.equal(await open('asymmetric',k,await seal('asymmetric',k,'a'.repeat(190))),'a'.repeat(190));await assert.rejects(seal('asymmetric',k,'a'.repeat(191)));await assert.rejects(seal('asymmetric',k,'🔐'.repeat(48)));});
-
+import {makeKeys,seal,open,unb64,b64,exportEncryptionKey,exportDecryptionKey,importDecryptionKey} from './crypto.js';
+for(const mode of ['symmetric','asymmetric'])test(`${mode}: plain code, pasted keys, wrong keys, tampering`,async()=>{const keys=await makeKeys(mode),message='Hello students! 🔐 ආයුබෝවන්';const code=await seal(mode,keys,message);assert.match(code,/^[A-Za-z0-9+/]+=*$/);assert.notEqual(await seal(mode,keys,message),code);const textKey=await exportDecryptionKey(mode,keys),key=await importDecryptionKey(mode,textKey);assert.equal(await open(mode,key,code),message);assert.equal(await open(mode,await importDecryptionKey(mode,'\n'+textKey+'\n'),code),message);const wrong=await importDecryptionKey(mode,await exportDecryptionKey(mode,await makeKeys(mode)));await assert.rejects(open(mode,wrong,code));const data=unb64(code);data[data.length-1]^=1;await assert.rejects(open(mode,key,b64(data)));await assert.rejects(importDecryptionKey(mode,''));await assert.rejects(importDecryptionKey(mode,'bad-key'));await assert.rejects(open(mode,key,'invalid'));await assert.rejects(seal(mode,keys,''));await assert.rejects(open(mode==='symmetric'?'asymmetric':'symmetric',key,code));if(mode==='asymmetric')await assert.rejects(importDecryptionKey(mode,await exportEncryptionKey(mode,keys)));else assert.equal(textKey,await exportEncryptionKey(mode,keys));});
+test('RSA respects UTF-8 byte limit',async()=>{const k=await makeKeys('asymmetric');assert.equal(await open('asymmetric',k,await seal('asymmetric',k,'a'.repeat(190))),'a'.repeat(190));await assert.rejects(seal('asymmetric',k,'a'.repeat(191)));await assert.rejects(seal('asymmetric',k,'🔐'.repeat(48)));});
