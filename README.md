@@ -19,3 +19,9 @@ All encryption happens locally through Web Crypto. No messages or keys are uploa
 The separate SSH deployment key is unrelated to the demo encryption keys. Add its public .pub half to this repository under Settings > Deploy keys, with read-only access. Install the private half only on your hosting machine. Never commit it. Clone using git@github.com:dylenwolff/computing.dylenwolff.com.git. This key enables repository access, not website hosting or DNS.
 
 Reference: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt
+
+## Demo hub and presentation view
+The home screen selects tools; encryption is the first tool. Launch requests browser full screen and opens a focused view with Back to tools. If full screen is declined, the same demo remains usable in the browser. Three slides cover keys, a message, and encryption/decryption. Encrypting advances to the result slide. The Back button exits full screen and returns to the hub. The encryption route is /#encryption.
+
+## Backend decision
+This version is a static HTML/CSS/JavaScript app. Web Crypto performs encryption in the browser. No application backend, database, or account system is needed. server.js is a local preview server only. A future backend would be justified for saved lessons, logins, or synchronized classroom sessions; choose its implementation when those requirements are defined. Host hub.js along with the other four application files.
